@@ -28,3 +28,4 @@ mytest/
 !*.yaml
 !*.ttf
 !*.txt
+!*.md
