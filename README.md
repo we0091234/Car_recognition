@@ -12,7 +12,7 @@ python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/
 
 测试文件夹imgs，结果保存再 result 文件夹中
 
-![Image text](image/single_blue.jpg)
+![Image text](image/test.jpg)
 
 ## **检测训练**
 
