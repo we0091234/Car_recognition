@@ -1,4 +1,4 @@
-from plate_recognition.plateNet import myNet_ocr
+from plate_recognition.plateNet import myNet_ocr,myNet_ocr_color
 import torch
 import torch.nn as nn
 import cv2
@@ -21,6 +21,7 @@ def allFilePath(rootPath,allFIleList):
             allFilePath(os.path.join(rootPath,temp),allFIleList)
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device("cpu")
 plateName=r"#京沪津渝冀晋蒙辽吉黑苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云藏陕甘青宁新学警港澳挂使领民航危0123456789ABCDEFGHJKLMNPQRSTUVWXYZ险品"
+color_list=['黑色','蓝色','绿色','白色','黄色']
 mean_value,std_value=(0.588,0.193)
 def decodePlate(preds):
     pre=0
@@ -47,17 +48,19 @@ def image_processing(img,device):
 
 def get_plate_result(img,device,model):
     input = image_processing(img,device)
-    preds = model(input)
-    # preds =preds.argmax(dim=2) #找出概率最大的那个字符
+    preds,color_preds = model(input)
+    preds =preds.argmax(dim=2) #找出概率最大的那个字符
+    color_preds = color_preds.argmax(dim=-1)
     # print(preds)
     preds=preds.view(-1).detach().cpu().numpy()
+    color_preds=color_preds.item()
     newPreds=decodePlate(preds)
     plate=""
     for i in newPreds:
         plate+=plateName[i]
     # if not (plate[0] in plateName[1:44] ):
     #     return ""
-    return plate
+    return plate,color_list[color_preds]
 
 def init_model(device,model_path):
     # print( print(sys.path))
@@ -66,7 +69,7 @@ def init_model(device,model_path):
     model_state=check_point['state_dict']
     cfg=check_point['cfg']
     model_path = os.sep.join([sys.path[0],model_path])
-    model = myNet_ocr(num_classes=len(plateName),export=True,cfg=cfg)
+    model = myNet_ocr_color(num_classes=len(plateName),export=True,cfg=cfg,color_num=len(color_list))
    
     model.load_state_dict(model_state)
     model.to(device)

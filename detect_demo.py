@@ -169,7 +169,7 @@ def draw_result(orgimg,dict_list):
     return orgimg
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--detect_model', nargs='+', type=str, default='weights/plate_detect.pt', help='model.pt path(s)')  #检测模型
+    parser.add_argument('--detect_model', nargs='+', type=str, default='weights/detect.pt', help='model.pt path(s)')  #检测模型
     parser.add_argument('--image_path', type=str, default='imgs', help='source') 
     parser.add_argument('--img_size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--output', type=str, default='result1', help='source') 

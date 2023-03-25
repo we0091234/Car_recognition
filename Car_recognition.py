@@ -16,6 +16,7 @@ from plate_recognition.plate_rec import get_plate_result,allFilePath,init_model,
 # from plate_recognition.plate_cls import cv_imread
 from plate_recognition.double_plate_split_merge import get_split_merge
 from plate_recognition.color_rec import plate_color_rec,init_color_model
+from car_recognition.car_rec import init_car_rec_model,get_color_and_score
 
 clors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(0,255,255)]
 danger=['危','险']
@@ -65,7 +66,7 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):  #�
 
     coords[:, [0, 2, 4, 6]] -= pad[0]  # x padding
     coords[:, [1, 3, 5, 7]] -= pad[1]  # y padding
-    coords[:, :10] /= gain
+    coords[:, :8] /= gain
     #clip_coords(coords, img0_shape)
     coords[:, 0].clamp_(0, img0_shape[1])  # x1
     coords[:, 1].clamp_(0, img0_shape[0])  # y1
@@ -79,7 +80,7 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):  #�
     # coords[:, 9].clamp_(0, img0_shape[0])  # y5
     return coords
 
-def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num,device,plate_rec_model,plate_color_model=None):
+def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num,device,plate_rec_model,car_rec_model):
     h,w,c = img.shape
     result_dict={}
     x1 = int(xyxy[0])
@@ -90,10 +91,15 @@ def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num,device,plate_re
     rect=[x1,y1,x2,y2]
     
     if int(class_num) ==2:
+        # 
+        car_roi_img = img[y1:y2,x1:x2]
+        car_color,color_conf=get_color_and_score(car_rec_model,car_roi_img,device)
         result_dict['class_type']=class_type[int(class_num)]
         result_dict['rect']=rect                      #车辆roi
-        result_dict['score']=conf
+        result_dict['score']=conf                     #车牌区域检测得分
         result_dict['object_no']=int(class_num)
+        result_dict['car_color']=car_color
+        result_dict['color_conf']=color_conf
         return result_dict
     
     for i in range(4):
@@ -103,10 +109,9 @@ def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num,device,plate_re
 
     class_label= int(class_num)  #车牌的的类型0代表单牌，1代表双层车牌
     roi_img = four_point_transform(img,landmarks_np)   #透视变换得到车牌小图
-    color_code = plate_color_rec(roi_img,plate_color_model,device) #车牌颜色识别
     if class_label:        #判断是否是双层车牌，是双牌的话进行分割后然后拼接
         roi_img=get_split_merge(roi_img)
-    plate_number = get_plate_result(roi_img,device,plate_rec_model)                 #对车牌小图进行识别
+    plate_number ,plate_color= get_plate_result(roi_img,device,plate_rec_model)                 #对车牌小图进行识别,得到颜色和车牌号
     for dan in danger:                                                           #只要出现‘危’或者‘险’就是危险品车牌
         if dan in plate_number:
             plate_number='危险品'
@@ -116,14 +121,14 @@ def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num,device,plate_re
     result_dict['landmarks']=landmarks_np.tolist() #车牌角点坐标
     result_dict['plate_no']=plate_number   #车牌号
     result_dict['roi_height']=roi_img.shape[0]  #车牌高度
-    result_dict['plate_color']=color_code   #车牌颜色
+    result_dict['plate_color']=plate_color   #车牌颜色
     result_dict['object_no']=class_label   #单双层 0单层 1双层
-    result_dict['score']=conf
+    result_dict['score']=conf           #车牌区域检测得分
     return result_dict
 
 
 
-def detect_Recognition_plate(model, orgimg, device,plate_rec_model,img_size,plate_color_model=None):
+def detect_Recognition_plate(model, orgimg, device,plate_rec_model,img_size,car_rec_model=None):
     # Load model
     # img_size = opt_img_size
     conf_thres = 0.3
@@ -183,7 +188,7 @@ def detect_Recognition_plate(model, orgimg, device,plate_rec_model,img_size,plat
                 conf = det[j, 4].cpu().numpy()
                 landmarks = det[j, 5:13].view(-1).tolist()
                 class_num = det[j, 13].cpu().numpy()
-                result_dict = get_plate_rec_landmark(orgimg, xyxy, conf, landmarks, class_num,device,plate_rec_model,plate_color_model)
+                result_dict = get_plate_rec_landmark(orgimg, xyxy, conf, landmarks, class_num,device,plate_rec_model,car_rec_model)
                 dict_list.append(result_dict)
     return dict_list
     # cv2.imwrite('result.jpg', orgimg)
@@ -202,7 +207,7 @@ def draw_result(orgimg,dict_list):
             rect_area[2]=min(orgimg.shape[1],int(rect_area[2]+padding_w))
             rect_area[3]=min(orgimg.shape[0],int(rect_area[3]+padding_h))
 
-            height_area = result['roi_height']
+            height_area = int(result['roi_height']/2)
             landmarks=result['landmarks']
             result_p = result['plate_no']
             if result['object_no']==0:#单层
@@ -218,6 +223,13 @@ def draw_result(orgimg,dict_list):
                     orgimg=cv2ImgAddText(orgimg,result_p,rect_area[0],rect_area[3],(0,255,0),height_area)
                 else:
                     orgimg=cv2ImgAddText(orgimg,result_p,rect_area[0]-height_area,rect_area[1]-height_area-10,(0,255,0),height_area)
+        else:
+            height_area=int((rect_area[3]-rect_area[1])/20)
+            car_color = result['car_color']
+            car_color_str="车辆颜色:"
+            car_color_str+=car_color
+            orgimg=cv2ImgAddText(orgimg,car_color_str,rect_area[0],rect_area[1],(0,255,0),height_area)
+            
         cv2.rectangle(orgimg,(rect_area[0],rect_area[1]),(rect_area[2],rect_area[3]),object_color[object_no],2) #画框       
     print(result_str)
     return orgimg
@@ -233,8 +245,8 @@ def get_second(capture):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--detect_model', nargs='+', type=str, default='weights/detect.pt', help='model.pt path(s)')  #检测模型
-    parser.add_argument('--rec_model', type=str, default='weights/plate_rec.pth', help='model.pt path(s)')#识别模型
-    parser.add_argument('--color_model',type=str,default='weights/color_classify.pth',help='plate color')#颜色识别模型
+    parser.add_argument('--rec_model', type=str, default='weights/plate_rec_color.pth', help='model.pt path(s)')#车牌识别+车牌颜色识别模型
+    parser.add_argument('--car_rec_model',type=str,default='weights/car_rec_color.pth',help='car_rec_model') #车辆识别模型
     parser.add_argument('--image_path', type=str, default='imgs', help='source') 
     parser.add_argument('--img_size', type=int, default=384, help='inference size (pixels)')
     parser.add_argument('--output', type=str, default='result1', help='source') 
@@ -250,12 +262,12 @@ if __name__ == '__main__':
 
     detect_model = load_model(opt.detect_model, device)  #初始化检测模型
     plate_rec_model=init_model(device,opt.rec_model)      #初始化识别模型
+    car_rec_model = init_car_rec_model(opt.car_rec_model,device) #初始化车辆识别模型
     #算参数量
     total = sum(p.numel() for p in detect_model.parameters())
     total_1 = sum(p.numel() for p in plate_rec_model.parameters())
     print("detect params: %.2fM,rec params: %.2fM" % (total/1e6,total_1/1e6))
     
-    plate_color_model =init_color_model(opt.color_model,device)
     time_all = 0
     time_begin=time.time()
     if not opt.video:     #处理图片
@@ -273,7 +285,8 @@ if __name__ == '__main__':
                 if img.shape[-1]==4:
                     img=cv2.cvtColor(img,cv2.COLOR_BGRA2BGR)
                 # detect_one(model,img_path,device)
-                dict_list=detect_Recognition_plate(detect_model, img, device,plate_rec_model,opt.img_size,plate_color_model)
+                dict_list=detect_Recognition_plate(detect_model, img, device,plate_rec_model,opt.img_size,car_rec_model)
+                # print(dict_list)
                 ori_img=draw_result(img,dict_list)
                 img_name = os.path.basename(img_path)
                 save_img_path = os.path.join(save_path,img_name)
