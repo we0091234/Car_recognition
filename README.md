@@ -7,7 +7,7 @@
 #### **图片测试demo:**
 
 ```
-python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/plate_rec.pth --image_path imgs --output result
+python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/plate_rec_color.pth --image_path imgs --output result
 ```
 
 测试文件夹imgs，结果保存再 result 文件夹中
@@ -65,4 +65,6 @@ python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/
 
 ## 联系
 
-**有问题可以提issues 或者加qq群:871797331 询问**
+**有问题可以提issues 或者加qq群 823419837 询问**
+
+![Image text](image/README/1.png)
