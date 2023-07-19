@@ -215,8 +215,10 @@ def draw_result(orgimg,dict_list):
             else:                             #双层
                 result_p+=" "+result['plate_color']+"双层"
             result_str+=result_p+" "
-            for i in range(4):  #关键点
-                cv2.circle(orgimg, (int(landmarks[i][0]), int(landmarks[i][1])), 5, clors[i], -1)
+            # only draw plate landmark
+            if label !=2:
+                for i in range(4):  #关键点
+                    cv2.circle(orgimg, (int(landmarks[i][0]), int(landmarks[i][1])), 5, clors[i], -1)
             
             if len(result)>=1:
                 if "危险品" in result_p: #如果是危险品车牌，文字就画在下面
