@@ -160,8 +160,10 @@ def draw_result(orgimg,dict_list):
         landmarks=result['landmarks']
         label=result['class']
         # result_str+=result+" "
-        for i in range(4):  #关键点
-            cv2.circle(orgimg, (int(landmarks[i][0]), int(landmarks[i][1])), 5, clors[i], -1)
+        # only draw plate landmark
+        if label != 2:
+            for i in range(4):  #关键点
+                cv2.circle(orgimg, (int(landmarks[i][0]), int(landmarks[i][1])), 5, clors[i], -1)
         cv2.rectangle(orgimg,(rect_area[0],rect_area[1]),(rect_area[2],rect_area[3]),clors[label],2) #画框
         cv2.putText(img,str(label),(rect_area[0],rect_area[1]),cv2.FONT_HERSHEY_SIMPLEX,0.5,clors[label],2)
     #     orgimg=cv2ImgAddText(orgimg,label,rect_area[0]-height_area,rect_area[1]-height_area-10,(0,255,0),height_area)
