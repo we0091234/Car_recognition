@@ -16,7 +16,7 @@ python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/
 
 ## **检测训练**
 
-1. **下载数据集：**  [datasets](https://pan.baidu.com/s/1YSURJvo4v1N5x7NVsxEA_Q) 提取码：3s0j     数据从CCPD和CRPD数据集中选取并转换的
+1. **下载数据集：**  获取数据集+V：we0091234 （注明来意）
    数据集格式为yolo格式：
 
    ```
