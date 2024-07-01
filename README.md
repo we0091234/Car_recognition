@@ -65,6 +65,6 @@ python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/
 
 ## 联系
 
-**有问题可以提issues 或者加qq群 823419837(已满) 加二群 837982567  询问**
+**有问题可以提issues 或者加qq群：769809695（三群新开） 823419837(已满) 837982567（已满）  询问**
 
-![Image text](image/README/105384078.png)
+
