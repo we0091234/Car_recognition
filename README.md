@@ -16,7 +16,7 @@ python Car_recognition.py --detect_model weights/detect.pt  --rec_model weights/
 
 ## **检测训练**
 
-1. **下载数据集：**  获取数据集+V：we0091234 （注明来意）
+1. **下载数据集：**  获取数据集+V：we0091234 （注明来意）**收费30 介意勿扰** 
    数据集格式为yolo格式：
 
    ```
